@@ -562,6 +562,75 @@
             font-size: 0.9em;
             color: var(--text-secondary);
         }
+
+        /* Modern Bottom Navbar */
+        .bottom-navbar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--surface-color);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: var(--spacing-sm) 0;
+            z-index: 1000;
+            box-shadow: 0 -2px 8px var(--shadow-color);
+        }
+
+        .bottom-navbar button {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: var(--spacing-sm);
+            transition: all 0.2s ease;
+        }
+
+        .bottom-navbar button:hover {
+            color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .bottom-navbar button.active {
+            color: var(--primary-color);
+        }
+
+        .bottom-navbar button .material-symbols-outlined {
+            font-size: 24px;
+        }
+
+        .bottom-navbar button span {
+            font-size: 12px;
+        }
+
+        /* Adjust main content padding to avoid overlap with bottom navbar */
+        #app {
+            padding-bottom: 60px; /* Adjust based on navbar height */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .bottom-navbar {
+                padding: var(--spacing-sm) 0;
+            }
+
+            .bottom-navbar button {
+                padding: var(--spacing-sm);
+            }
+
+            .bottom-navbar button .material-symbols-outlined {
+                font-size: 20px;
+            }
+
+            .bottom-navbar button span {
+                font-size: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -662,6 +731,27 @@
             <button class="close-button material-symbols-outlined">close</button>
         </div>
     </div>
+
+    <!-- Modern Bottom Navbar -->
+    <div class="bottom-navbar">
+        <button class="active">
+            <span class="material-symbols-outlined">home</span>
+            <span>Home</span>
+        </button>
+        <button>
+            <span class="material-symbols-outlined">chat</span>
+            <span>Chat</span>
+        </button>
+        <button>
+            <span class="material-symbols-outlined">settings</span>
+            <span>Settings</span>
+        </button>
+        <button>
+            <span class="material-symbols-outlined">person</span>
+            <span>Profile</span>
+        </button>
+    </div>
+
     <script src="js/main.js" type="module"></script>
 </body>
 </html>
