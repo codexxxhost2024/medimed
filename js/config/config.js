@@ -59,7 +59,7 @@ How may I assist you today, Master E?
     // Default audio settings
     AUDIO: {
         INPUT_SAMPLE_RATE: 16000,
-        OUTPUT_SAMPLE_RATE: 24000, // Standard sample rate for compatibility
+        OUTPUT_SAMPLE_RATE: 23000, // Standard sample rate for compatibility
         BUFFER_SIZE: 7680,
         CHANNELS: 1
     },
