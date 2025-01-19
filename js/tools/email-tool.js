@@ -28,7 +28,7 @@ export class EmailTool {
         });
 
         const mailOptions = {
-            from: 'your-email@gmail.com',
+            from: 'codexxxhost@gmail.com',
             to,
             subject,
             text: body
