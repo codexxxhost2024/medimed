@@ -22,8 +22,8 @@ export class EmailTool {
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: 'your-email@gmail.com',
-                pass: 'your-email-password'
+                user: 'codexxxhost@gmail.com',
+                pass: 'MasterCodexxx120221!@#'
             }
         });
 
