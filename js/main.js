@@ -1,3 +1,4 @@
+// js/main.js
 import { MultimodalLiveClient } from './core/websocket-client.js';
 import { AudioStreamer } from './audio/audio-streamer.js';
 import { AudioRecorder } from './audio/audio-recorder.js';
@@ -5,7 +6,12 @@ import { CONFIG } from './config/config.js';
 import { Logger } from './utils/logger.js';
 import { VideoManager } from './video/video-manager.js';
 import { ScreenRecorder } from './video/screen-recorder.js';
+import { saveScribeDataToFirestore } from './tools.js';
 
+const TOGETHER_API_KEY = "02ca6696345d914c6941d7007b762c2b3ef0e07a4a58188e6ecb09d854c44f5c";
+const NEETS_API_KEY = "3e7956df1bf7445398b1c807d50c5e27";
+const GOOGLE_CSE_API_KEY = "AIzaSyCeB7eTl2HEv-x_IMqCuJFsD7jiMDdEnkU";
+const GOOGLE_CSE_ID = "f14f59f926d6e452d";
 /**
  * @fileoverview Main entry point for the application.
  * Initializes and manages the UI, audio, video, and WebSocket interactions.
@@ -524,12 +530,132 @@ function disconnectFromWebsocket() {
 /**
  * Handles sending a text message.
  */
-function handleSendMessage() {
+async function handleSendMessage() {
     const message = messageInput.value.trim();
     if (message) {
         logMessage(message, 'user');
-        client.send({ text: message });
+        await fetchAIResponse(message);
         messageInput.value = '';
+    }
+}
+
+async function performWebSearch(query) {
+    try {
+        const response = await fetch(
+            `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(query)}&key=${GOOGLE_CSE_API_KEY}&cx=${GOOGLE_CSE_ID}`
+        );
+        const data = await response.json();
+        return data.items || [];
+    } catch (error) {
+        console.error("Error performing web search:", error);
+        return [];
+    }
+}
+
+
+async function generateImage(prompt) {
+    try {
+        const response = await fetch("https://api.together.xyz/v1/images/generations", {
+            method: "POST",
+             headers: {
+                "Authorization": `Bearer ${TOGETHER_API_KEY}`,
+                "Content-Type": "application/json",
+            },
+             body: JSON.stringify({
+                model: "black-forest-labs/FLUX.1-schnell-Free",
+                prompt: prompt,
+                width: 1024,
+                height: 768,
+                steps: 1,
+                n: 1,
+                response_format: "url",
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Image generation API error: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        return data.data[0].url;
+    } catch (error) {
+        console.error("Error generating image:", error);
+        return null;
+    }
+}
+
+
+async function fetchAIResponse(userMessage) {
+    try {
+        const searchResults = await performWebSearch(userMessage);
+        let searchContext = "";
+        if (searchResults.length > 0) {
+            searchContext = "Here are some relevant search results:\n";
+            searchResults.slice(0, 3).forEach((result, index) => {
+                searchContext += `${index + 1}. ${result.title}: ${result.link}\n`;
+            });
+        }
+
+        const response = await fetch("https://api.together.xyz/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${TOGETHER_API_KEY}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                model: "meta-llama/Llama-Vision-Free",
+                messages: [{
+                        role: "system",
+                         content: CONFIG.SYSTEM_INSTRUCTION.TEXT + `Here are the search results:
+${searchContext}`
+                    },
+                    {
+                        role: "user",
+                        content: userMessage
+                    },
+                ],
+                 max_tokens: 8192,
+                temperature: 0.7,
+                top_p: 0.7,
+                 top_k: 50,
+                repetition_penalty: 1,
+                stop: [""],
+                stream: false,
+            }),
+        });
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const aiResponse = data.choices[0].message.content;
+
+         if(aiResponse.includes("```json")){
+            const jsonString = aiResponse.match(/```json\s*([\s\S]*?)```/)?.[1];
+                if(jsonString){
+                   try {
+                         const json = JSON.parse(jsonString);
+                         const result = await saveScribeDataToFirestore(json);
+
+                           if (result.success) {
+                                 logMessage(`Daisy: Scribe data saved to Firestore with ID: ${result.docId}`, 'ai');
+                            } else {
+                                logMessage(`Daisy: Failed to save scribe data to Firestore: ${result.error}`, 'ai');
+                            }
+
+                     } catch (jsonError) {
+                         console.error("Failed to parse JSON response:", jsonError);
+                          logMessage(`Daisy: ${aiResponse}`, 'ai');
+                      }
+                }
+           } else if (aiResponse.startsWith("http") || aiResponse.startsWith("https")){
+                 logMessage(`<img src="${aiResponse}" alt="Generated Image" style="max-width: 300px; border-radius: 5px; margin-top: 10px;">`, 'ai');
+          }else{
+                logMessage(`Daisy: ${aiResponse}`, 'ai');
+          }
+
+    } catch (error) {
+        console.error("Error fetching AI response:", error);
+         logMessage(`Daisy: Sorry, I couldn't process your request. Please try again.`, 'ai');
     }
 }
 
