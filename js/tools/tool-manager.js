@@ -4,6 +4,8 @@ import { Logger } from '../utils/logger.js';
 import { ApplicationError, ErrorCodes } from '../utils/error-boundary.js';
 import { GoogleSearchTool } from './google-search.js';
 import { WeatherTool } from './weather-tool.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+import { getFirestore, doc, updateDoc} from "https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js";
 
 /**
  * Manages the registration and execution of tools.
@@ -26,6 +28,7 @@ export class ToolManager {
         this.registerTool('weather', new WeatherTool());
          this.registerTool('imageGenerator', new ImageGeneratorTool());
          this.registerTool('scribeGenerator', new ScribeGeneratorTool());
+          this.registerTool('updateScribe', new UpdateScribeTool());
     }
 
     /**
@@ -214,12 +217,86 @@ class ScribeGeneratorTool {
     async execute(args){
         try {
            Logger.info('Executing ScribeGeneratorTool', args);
-
             return JSON.stringify(args);
-
         } catch (error){
             Logger.error("Scribe generation failed:", error);
             throw error;
         }
+    }
+}
+
+class UpdateScribeTool {
+    getDeclaration() {
+          return [{
+              name: "updateScribe",
+               description: "This tool will update a medical scribe base on the user input.",
+               parameters: {
+                   type: "object",
+                   properties: {
+                      docId: {type: "string", description: "Id of document in firestore"},
+                       title: {type: "string", description: "Title of the document."},
+                        patientName: {type: "string", description: "Name of the patient."},
+                         assignedMedicalPractitioner: {type: "string", description: "Assigned medical practitioner."},
+                        conductedOn: {type: "string", description: "Date when the assessment was conducted."},
+                        location: {type: "string", description: "Location where the assessment was conducted."},
+                        age: {type: "string", description: "Patient's age."},
+                        race: {type: "string", description: "Patient's race."},
+                        gender: {type: "string", description: "Patient's gender."},
+                         chiefComplaint: {type: "string", description: "Main reason for the patient's visit."},
+                        historyOfIllness: {type: "string", description: "Details about how the patient got sick."},
+                         pastMedicalHistory: {type: "string", description: "The patients past medical history, including alergies."},
+                         familyHistory: {type: "string", description: "Any relevant family medical history."},
+                        socialHistory: {type: "string", description: "Patient's social background and context."},
+                        reviewOfSystems: {type: "string", description: "Findings about patient's systems, like pain, and eating habits."},
+                        height: {type: "string", description: "Patient's height."},
+                        weight: {type: "string", description: "Patient's weight."},
+                        bmi: {type: "string", description: "Patient's Body Mass Index"},
+                        temperature: {type: "string", description: "Patient's temperature."},
+                        bloodPressure: {type: "string", description: "Patient's blood pressure."},
+                       generalAppearance: {type: "string", description: "How the patient looks generally."},
+                        eent: {type: "string", description: "Examination results for Ears, Eyes, Nose, and Throat"},
+                        cardiovascular: {type: "string", description: "Results of patient's cardio vascular examination."},
+                        respiratory: {type: "string", description: "Results of patient's respiratory examination."},
+                       integument: {type: "string", description: "Results of patient's skin examination."},
+                        labResults: {type: "string", description: "Results of patient's lab results."},
+                        generalObservations: {type: "string", description: "Additional medical observations."},
+                       differentialDiagnosis: {type: "string", description: "Possible differential diagnosis."},
+                        treatmentPlan: {type: "string", description: "Patient's treatment plan"},
+                       followUp: {type: "string", description: "Patient's follow up plan."},
+                        education: {type: "string", description: "Patient's education plan."},
+                         printedName: {type: "string", description: "Medical practitioner's printed name."},
+                        date: {type: "string", description: "Date when document was generated."},
+                  },
+                 required: ["docId"],
+              },
+        }];
+    }
+
+    async execute(args){
+         try {
+                Logger.info('Executing UpdateScribeTool', args);
+            
+              const firebaseConfig = {
+                    apiKey: "AIzaSyBe9a58zaQCrBSGeWwcIVa_PnZABoH6zV4",
+                    authDomain: "tudds-ccd0wn.firebaseapp.com",
+                   databaseURL: "https://tudds-ccd0wn-default-rtdb.asia-southeast1.firebasedatabase.app",
+                   projectId: "tudds-ccd0wn",
+                    storageBucket: "tudds-ccd0wn.appspot.com",
+                   messagingSenderId: "786974954352",
+                    appId: "1:786974954352:web:696d4fce818f14659bb5b5",
+                     measurementId: "G-CEQL4E8CW3"
+                };
+
+                // Initialize Firebase
+               const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                const {docId, ...scribeData} = args;
+               const docRef = doc(db, "scribe_documents", docId);
+                await updateDoc(docRef, scribeData);
+                return "Scribe updated successfully!";
+          } catch (error) {
+            Logger.error("Scribe update failed:", error);
+               throw error;
+         }
     }
 }
